@@ -28,6 +28,10 @@ int totalReplacementCount = (await Task.WhenAll(Directory.EnumerateFiles(decompi
             @"(?<=const-wide/16 (?<timeValueRegister>[pv]\d+), )0x7d0\b(?=.{1,300}invoke-static \{\1(?:, [pv]\d+){2}\}, Lio\/reactivex\/Completable;->timer\(JLjava\/util\/concurrent\/TimeUnit;\)Lio\/reactivex\/Completable;)",
             $"0x0 {CHANGED_COMMENT}", cts.Token),
 
+        // Disable the app's self-kill. WUApplication.onBackground() schedules System.exit(0) 15 minutes after backgrounding, and onForeground() cancels it. When the frozen process is resumed after more than 15 minutes, the overdue message runs before onForeground() can cancel it, so the app exits itself right as it is being resumed.
+        (_, "WUApplication.smali") => replaceInFile(filePath,
+            @"(?<=\.method private final onBackground\(\)V\s+\.locals \d+\s+)(?=\.line )",
+            $"return-void {CHANGED_COMMENT}\n    ", cts.Token),
         _ => Task.FromResult(0)
     };
 }))).Aggregate((a, b) => a + b);
